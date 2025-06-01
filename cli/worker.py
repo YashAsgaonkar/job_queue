@@ -6,6 +6,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from api.redis_client import redis_client
 from api.models import JobStatus,JobMap
+from api.utils import get_score
 
 
 
@@ -29,9 +30,6 @@ def process_job(job_data: JobMap) -> bool:
     print(f"Job {id} completed successfully!")
     return True
 
-def calculate_backoff(retry_count: int) -> int:
-    """Calculate exponential backoff time in seconds"""
-    return 2 ** retry_count
 
 def update_job_status(job_data: JobMap, status: JobStatus, error: str = None):
     """Update job status in Redis"""
@@ -48,7 +46,7 @@ def update_job_status(job_data: JobMap, status: JobStatus, error: str = None):
     job_json = job_data.model_dump_json()
     redis_client.hset("Job_map", job_data.id, job_json)
 
-def process_queue():
+def process_queue(sleep_time: int = 5):
     print("Starting job worker...")
     
     while True:
@@ -57,17 +55,13 @@ def process_queue():
         
         if not result:
             print("Queue is empty. Waiting...")
-            time.sleep(5)
+            time.sleep(sleep_time)
             continue
         
         # Parse job data and ensure type safety
         job_json = result[0].decode('utf-8')
         job_dict = json.loads(job_json)
-        
-        # Convert timestamp to created_at if needed
-        if 'timestamp' in job_dict and 'created_at' not in job_dict:
-            job_dict['created_at'] = job_dict.pop('timestamp')
-            
+                
         # Create JobMap object with validation
         job_data = JobMap.model_validate(job_dict)
         
@@ -76,39 +70,27 @@ def process_queue():
         
         # Try to process the job
         success = process_job(job_data)
-        
+        redis_client.zrem("Mail_queue", job_json)
         if success:
             # Job completed successfully
             update_job_status(job_data, JobStatus.SUCCESS)
             # Remove from queue
-            redis_client.zrem("Mail_queue", job_json)
         else:
-            # Handle failure
+            # Job failed, increment retry count
             job_data.retry_count += 1
-            
             if job_data.retry_count >= 3:
-                # Mark as permanently failed
-                update_job_status(job_data, JobStatus.PERMANENTLY_FAILED, 
-                                "Max retry attempts reached")
-                redis_client.zrem("Mail_queue", job_json)
+                # Permanently failed after 3 retries
+                update_job_status(job_data, JobStatus.PERMANENTLY_FAILED, "Job permanently failed after 3 retries")
             else:
-                # Update for retry
-                update_job_status(job_data, JobStatus.FAILED, 
-                                f"Failed attempt {job_data.retry_count} of 3")
-                
-                # Calculate new score with backoff
-                backoff = calculate_backoff(job_data.retry_count)
-                new_score = time.time() + backoff
-                
-                # Remove old entry and add back with new score
-                redis_client.zrem("Mail_queue", job_json)
-                redis_client.zadd("Mail_queue", {job_data.model_dump_json(): new_score})
-                
-                print(f"Job {job_data.id} will retry in {backoff} seconds")
-
+                # Move to retry queue
+                update_job_status(job_data, JobStatus.FAILED, "Job failed, moving to retry queue")
+                score = get_score(job_data.priority, time.time())
+                redis_client.zadd("Retry_queue", {job_data.model_dump_json(): score})
+            print(f"Job {job_data.id} moved to retry queue")
+        redis_client.hset("Job_map", job_data.id, job_data.model_dump_json())
 
 if __name__ == "__main__":
     try:
-        process_queue()
+        process_queue(10)
     except KeyboardInterrupt:
         print("\nWorker stopped.")

@@ -23,25 +23,3 @@ async def get_tasks():
         return tasks
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve tasks: {str(e)}")
-
-@router.get("/tasks/{task_id}")
-async def get_task(task_id: int):
-    """
-    Retrieve a specific task by ID
-    """
-    try:
-        # Get task from hash map for quick access
-        task_raw = redis_client.hget("Job_map", task_id)
-        
-        if not task_raw:
-            raise HTTPException(
-            status_code=404, 
-            detail=f"Task {task_id} not found"
-            )
-        task_data = json.loads(task_raw)
-        task = JobMap.model_validate(task_data)
-        return task.model_dump()
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve task: {str(e)}")

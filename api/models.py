@@ -20,14 +20,6 @@ class MailRequest(BaseModel):
     priority: Priority
     payload: str
 
-class QueueItem(BaseModel):
-    id: int
-    job_type: str
-    payload: str
-    priority: str
-    created_at: float
-    status: JobStatus = JobStatus.PENDING
-    retry_count: int = 0
 
 class ProcessQueryResponse(TypedDict):
     message: str

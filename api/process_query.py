@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from api.redis_client import redis_client
-from api.models import MailRequest, QueueItem, ProcessQueryResponse, JobStatus, JobMap
+from api.models import MailRequest, ProcessQueryResponse, JobStatus, JobMap
+from api.utils import get_score
 import time
 import json
 
@@ -16,7 +17,7 @@ async def process_query(query: MailRequest):
     query_id = redis_client.incr("query:id:counter")
 
     # Add extra fields
-    queue_item = QueueItem(
+    queue_item = JobMap(
         id=query_id,
         job_type=query.job_type,
         payload=query.payload,
@@ -26,17 +27,11 @@ async def process_query(query: MailRequest):
         retry_count=0
     )
 
-    # Score: negative priority (so high priority = lower score), then timestamp
-    # This ensures high priority comes first, then earlier requests
-    weight = -1000 if query.priority == "high" else 0
-    score = weight + queue_item.created_at / 1e8 
-    
-    job = convert_to_job_map(queue_item)
-
+    score = get_score(query.priority, queue_item.created_at)
     # Push to Redis sorted set
     redis_client.zadd("Mail_queue", {queue_item.model_dump_json(): score})
     # Push in map for quick access
-    redis_client.hset("Job_map", query_id, job.model_dump_json())
+    redis_client.hset("Job_map", query_id, queue_item.model_dump_json())
 
     return ProcessQueryResponse(
         message="Query processed successfully",
@@ -67,21 +62,5 @@ async def job_status(job_id: int):
         data=job
     )
 
-def convert_to_job_map(queue_item: QueueItem) -> JobMap:
-    """
-    Convert QueueItem to JobMap format.
-    """
-    return JobMap(
-        id=queue_item.id,
-        job_type=queue_item.job_type,
-        payload=queue_item.payload,
-        priority=queue_item.priority,
-        created_at=queue_item.created_at,  # Use timestamp as created_at
-        picked_at=None,
-        completed_at=None,
-        status=queue_item.status,
-        retry_count=queue_item.retry_count,
-        last_error=None
-    )
 
 
