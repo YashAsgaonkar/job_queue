@@ -7,11 +7,11 @@ router = APIRouter()
 @router.get("/tasks")
 async def get_tasks():
     """
-    Retrieve all tasks from Redis logs
+    Retrieve all tasks from the Job_map hash in Redis
     """
     try:
-        # Get tasks from logs list
-        tasks_raw = redis_client.lrange("Mail_logs", 0, -1)
+        # Get all tasks from the Job_map hash
+        tasks_raw = redis_client.hvals("Job_map")
         
         # Parse JSON strings into objects
         tasks = []

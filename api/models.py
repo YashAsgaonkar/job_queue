@@ -25,7 +25,7 @@ class QueueItem(BaseModel):
     job_type: str
     payload: str
     priority: str
-    timestamp: float
+    created_at: float
     status: JobStatus = JobStatus.PENDING
     retry_count: int = 0
 
@@ -42,7 +42,7 @@ class JobMap(BaseModel):
     created_at: float
     picked_at: Optional[float] = None
     completed_at: Optional[float] = None
-    status: str
+    status: JobStatus = JobStatus.PENDING
     retry_count: int = 0
     last_error: Optional[str] = None
 

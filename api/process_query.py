@@ -21,7 +21,7 @@ async def process_query(query: MailRequest):
         job_type=query.job_type,
         payload=query.payload,
         priority=query.priority,
-        timestamp=time.time(),
+        created_at=time.time(),
         status=JobStatus.PENDING,
         retry_count=0
     )
@@ -29,14 +29,12 @@ async def process_query(query: MailRequest):
     # Score: negative priority (so high priority = lower score), then timestamp
     # This ensures high priority comes first, then earlier requests
     weight = -1000 if query.priority == "high" else 0
-    score = weight + queue_item.timestamp / 1e8 
+    score = weight + queue_item.created_at / 1e8 
     
     job = convert_to_job_map(queue_item)
 
     # Push to Redis sorted set
     redis_client.zadd("Mail_queue", {queue_item.model_dump_json(): score})
-    # Push to data logs
-    redis_client.lpush("Mail_logs", job.model_dump_json())
     # Push in map for quick access
     redis_client.hset("Job_map", query_id, job.model_dump_json())
 
@@ -78,7 +76,7 @@ def convert_to_job_map(queue_item: QueueItem) -> JobMap:
         job_type=queue_item.job_type,
         payload=queue_item.payload,
         priority=queue_item.priority,
-        created_at=queue_item.timestamp,  # Use timestamp as created_at
+        created_at=queue_item.created_at,  # Use timestamp as created_at
         picked_at=None,
         completed_at=None,
         status=queue_item.status,
