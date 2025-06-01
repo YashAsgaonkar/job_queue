@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from api.redis_client import redis_client
-from api.models import MailRequest, QueueItem, ProcessQueryResponse
+from api.models import MailRequest, QueueItem, ProcessQueryResponse, JobStatus
 import time
 import json
 
@@ -22,7 +22,7 @@ async def process_query(query: MailRequest):
         payload=query.payload,
         priority=query.priority,
         timestamp=time.time(),
-        status="pending",
+        status=JobStatus.PENDING,
         retry_count=0
     )
 
