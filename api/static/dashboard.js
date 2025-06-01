@@ -9,6 +9,8 @@ let lastUpdated = null;
 // Initialize when document is ready
 document.addEventListener('DOMContentLoaded', function() {
     // Set up event listeners
+    fetchTasks();
+
     document.getElementById('refresh').addEventListener('click', fetchTasks);
     
     // Modal controls
@@ -18,8 +20,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Filter buttons
     document.getElementById('filter-all').addEventListener('click', () => setFilter('all'));
     document.getElementById('filter-pending').addEventListener('click', () => setFilter('pending'));
+    document.getElementById('filter-processing').addEventListener('click', () => setFilter('processing'));
     document.getElementById('filter-success').addEventListener('click', () => setFilter('success'));
     document.getElementById('filter-failed').addEventListener('click', () => setFilter('failed'));
+    document.getElementById('filter-permanently_failed').addEventListener('click', () => setFilter('permanently_failed'));
     
     // Set up sorting
     document.querySelectorAll('th.sortable').forEach(th => {
@@ -30,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Initial fetch
-    fetchTasks();
+    updateLastUpdatedTime();
 });
 
 // Fetch tasks from the API
@@ -51,9 +55,10 @@ function fetchTasks() {
 // Update the last updated timestamp
 function updateLastUpdatedTime() {
     const lastUpdatedElement = document.getElementById('last-updated-time');
-    if (lastUpdated) {
-        lastUpdatedElement.textContent = lastUpdated.toLocaleTimeString();
+    if (!lastUpdated) {
+        lastUpdated = new Date(); // Set initial time when first loading
     }
+    lastUpdatedElement.textContent = lastUpdated.toLocaleTimeString();
 }
 
 // Render tasks to the table
@@ -82,14 +87,19 @@ function renderTasks() {
       row.classList.add('bg-green-100');
     } else if (task.status.toLowerCase() === 'failed') {
       row.classList.add('bg-red-100');
+    } else if (task.status.toLowerCase() === 'processing') {
+      row.classList.add('bg-blue-100');
+    } else if (task.status.toLowerCase() === 'permanently_failed') {
+      row.classList.add('bg-red-300');
     }
     
       // Set the proper status class for background color
     row.setAttribute('data-id', task.id);
         
         // Format timestamp
-        const date = new Date(task.timestamp * 1000);
-        const formattedDate = date.toLocaleString();
+        const createdDate = new Date(task.created_at * 1000);
+        const pickedDate = task.picked_at ? new Date(task.picked_at * 1000) : null;
+        const completedDate = task.completed_at ? new Date(task.completed_at * 1000) : null;
         
         // Apply priority class
         const priorityClass = `priority-${task.priority.toLowerCase()}`;
@@ -99,16 +109,38 @@ function renderTasks() {
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${task.job_type}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${truncateText(task.payload, 30)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm ${priorityClass}">${task.priority}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formattedDate}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${task.status}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm ${task.retry_count > 0 ? 'text-red-600' : 'text-gray-500'}">${task.retry_count}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                Created: ${createdDate.toLocaleString()}<br>
+                ${pickedDate ? `Picked: ${pickedDate.toLocaleString()}<br>` : ''}
+                ${completedDate ? `Completed: ${completedDate.toLocaleString()}` : ''}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm ${getStatusClass(task.status)}">${task.status}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm ${task.retry_count > 0 ? 'text-red-600' : 'text-gray-500'}">
+                ${task.retry_count}
+                ${task.last_error ? `<br><span class="text-xs text-red-500">${truncateText(task.last_error, 20)}</span>` : ''}
+            </td>
         `;
         
         row.addEventListener('click', () => showTaskDetails(task));
         tableBody.appendChild(row);
     });
 }
-
+function getStatusClass(status) {
+    switch(status.toLowerCase()) {
+        case 'pending':
+            return 'text-yellow-800';
+        case 'processing':
+            return 'text-blue-800';
+        case 'success':
+            return 'text-green-800';
+        case 'failed':
+            return 'text-red-800';
+        case 'permanently_failed':
+            return 'text-gray-800';
+        default:
+            return 'text-gray-600';
+    }
+}
 // Show task details in modal
 function showTaskDetails(task) {
     const detailElement = document.getElementById('task-detail-json');

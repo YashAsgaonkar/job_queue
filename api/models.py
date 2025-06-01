@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from enum import Enum
-from typing import TypedDict
+from typing import TypedDict , Optional
 
 
 class Priority(str, Enum):
@@ -33,3 +33,16 @@ class ProcessQueryResponse(TypedDict):
     message: str
     query_id: int
     data: dict
+
+class JobMap(BaseModel):
+    id: int
+    job_type: str
+    payload: str
+    priority: str
+    created_at: float
+    picked_at: Optional[float] = None
+    completed_at: Optional[float] = None
+    status: str
+    retry_count: int = 0
+    last_error: Optional[str] = None
+

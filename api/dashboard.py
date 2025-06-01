@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from api.redis_client import redis_client
+from api.models import JobMap
 import json
 router = APIRouter()
 
@@ -15,8 +16,9 @@ async def get_tasks():
         # Parse JSON strings into objects
         tasks = []
         for task_raw in tasks_raw:
-            task = json.loads(task_raw)
-            tasks.append(task)
+            task_data = json.loads(task_raw)
+            task = JobMap.model_validate(task_data)
+            tasks.append(task.model_dump())
             
         return tasks
     except Exception as e:
@@ -32,10 +34,13 @@ async def get_task(task_id: int):
         task_raw = redis_client.hget("Job_map", task_id)
         
         if not task_raw:
-            raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
-            
-        task = json.loads(task_raw)
-        return task
+            raise HTTPException(
+            status_code=404, 
+            detail=f"Task {task_id} not found"
+            )
+        task_data = json.loads(task_raw)
+        task = JobMap.model_validate(task_data)
+        return task.model_dump()
     except HTTPException:
         raise
     except Exception as e:

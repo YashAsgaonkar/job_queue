@@ -11,18 +11,30 @@
           extend: {
             colors: {
               "status-pending": "#fff3cd",
+              "status-processing": "#cff4fc",
               "status-success": "#d1e7dd",
               "status-failed": "#f8d7da",
+              "status-permanently-failed": "#dc3545",
             },
           },
         },
         safelist: [
           "bg-yellow-100",
+          "bg-blue-100",
           "bg-green-100",
           "bg-red-100",
+          "bg-gray-200",
+          "text-yellow-800",
+          "text-blue-800",
+          "text-green-800",
+          "text-red-800",
+          "text-gray-800",
+          "text-gray-600",
           "status-pending",
+          "status-processing",
           "status-success",
           "status-failed",
+          "status-permanently-failed",
         ],
       };
     </script>
@@ -96,6 +108,13 @@
               Pending
             </button>
             <button
+              id="filter-processing"
+              class="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-sm rounded-md"
+            >
+              Processing
+            </button>
+
+            <button
               id="filter-success"
               class="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-800 text-sm rounded-md"
             >
@@ -106,6 +125,12 @@
               class="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 text-sm rounded-md"
             >
               Failed
+            </button>
+            <button
+              id="filter-permanently_failed"
+              class="px-3 py-1 bg-red-300 hover:bg-red-300 text-red-800 text-sm rounded-md"
+            >
+              Permanently Failed
             </button>
           </div>
         </div>
@@ -139,10 +164,10 @@
                   Priority
                 </th>
                 <th
-                  data-sort="timestamp"
+                  data-sort="created_at"
                   class="sortable px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 >
-                  Timestamp
+                  Timestamps
                 </th>
                 <th
                   data-sort="status"
