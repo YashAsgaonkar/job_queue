@@ -1,5 +1,3 @@
-// Dashboard.js - Handles task queue dashboard functionality
-
 // Global variables
 let allTasks = [];
 let currentSort = { field: 'timestamp', direction: 'desc' };
@@ -11,8 +9,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up event listeners
     fetchTasks();
 
-    document.getElementById('refresh').addEventListener('click', fetchTasks);
-    
+    document.getElementById('refresh').addEventListener('click', () => {
+    const currentPage = parseInt(document.getElementById('current-page').textContent.split(': ')[1]);
+    fetchTasks(currentPage); // Pass the next page number
+    });
     // Modal controls
     document.getElementById('closeModal').addEventListener('click', closeModal);
     document.getElementById('closeModalBtn').addEventListener('click', closeModal);
@@ -24,7 +24,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('filter-success').addEventListener('click', () => setFilter('success'));
     document.getElementById('filter-failed').addEventListener('click', () => setFilter('failed'));
     document.getElementById('filter-permanently_failed').addEventListener('click', () => setFilter('permanently_failed'));
-    
+    document.getElementById('next-page').addEventListener('click', () => {
+    const currentPage = parseInt(document.getElementById('current-page').textContent.split(': ')[1]);
+    fetchTasks(currentPage + 1); // Pass the next page number
+    });
+
+    document.getElementById('prev-page').addEventListener('click', () => {
+    const currentPage = parseInt(document.getElementById('current-page').textContent.split(': ')[1]);
+    if (currentPage > 1) {
+        fetchTasks(currentPage - 1); // Pass the previous page number
+    }
+    });
     // Set up sorting
     document.querySelectorAll('th.sortable').forEach(th => {
         th.addEventListener('click', () => {
@@ -38,17 +48,26 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Fetch tasks from the API
-function fetchTasks() {
-    fetch('/api/tasks')
+function fetchTasks(page = 1, limit = 40) {
+    fetch(`/api/tasks?page=${page}&limit=${limit}`)
         .then(response => response.json())
         .then(data => {
-            allTasks = data;
+            console.log("API Response:", data); // Debugging log
+            allTasks = data.tasks || []; // Extract tasks from response
             lastUpdated = new Date();
             updateLastUpdatedTime();
+
+            // Update pagination metadata
+            document.getElementById('total-tasks').textContent = `Total Tasks: ${data.total_tasks}`;
+            document.getElementById('current-page').textContent = `Page: ${data.page}`;
+            document.getElementById('tasks-returned').textContent = `Tasks Returned: ${data.tasks_returned}`;
+
             renderTasks();
         })
         .catch(error => {
             console.error('Error fetching tasks:', error);
+            const tableBody = document.getElementById('tasks-table');
+            tableBody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-sm text-red-500">Failed to fetch tasks. Please try again later.</td></tr>';
         });
 }
 
@@ -65,45 +84,44 @@ function updateLastUpdatedTime() {
 function renderTasks() {
     const tableBody = document.getElementById('tasks-table');
     tableBody.innerHTML = '';
-    
+
     // Apply filter and sort
     const filteredTasks = filterTasksByStatus(allTasks);
     const sortedTasks = sortTasksByField(filteredTasks);
-    
+
     if (sortedTasks.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = '<td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">No tasks found</td>';
         tableBody.appendChild(row);
         return;
     }
-    
+
     sortedTasks.forEach(task => {
-    const row = document.createElement('tr');
-    
-    // Apply Tailwind classes directly based on status
-    if (task.status.toLowerCase() === 'pending') {
-      row.classList.add('bg-yellow-100');
-    } else if (task.status.toLowerCase() === 'success') {
-      row.classList.add('bg-green-100');
-    } else if (task.status.toLowerCase() === 'failed') {
-      row.classList.add('bg-red-100');
-    } else if (task.status.toLowerCase() === 'processing') {
-      row.classList.add('bg-blue-100');
-    } else if (task.status.toLowerCase() === 'permanently_failed') {
-      row.classList.add('bg-red-300');
-    }
-    
-      // Set the proper status class for background color
-    row.setAttribute('data-id', task.id);
-        
+        const row = document.createElement('tr');
+
+        // Apply Tailwind classes directly based on status
+        if (task.status.toLowerCase() === 'pending') {
+            row.classList.add('bg-yellow-100');
+        } else if (task.status.toLowerCase() === 'success') {
+            row.classList.add('bg-green-100');
+        } else if (task.status.toLowerCase() === 'failed') {
+            row.classList.add('bg-red-100');
+        } else if (task.status.toLowerCase() === 'processing') {
+            row.classList.add('bg-blue-100');
+        } else if (task.status.toLowerCase() === 'permanently_failed') {
+            row.classList.add('bg-red-300');
+        }
+
+        row.setAttribute('data-id', task.id);
+
         // Format timestamp
         const createdDate = new Date(task.created_at * 1000);
         const pickedDate = task.picked_at ? new Date(task.picked_at * 1000) : null;
         const completedDate = task.completed_at ? new Date(task.completed_at * 1000) : null;
-        
+
         // Apply priority class
         const priorityClass = `priority-${task.priority.toLowerCase()}`;
-        
+
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${task.id}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${task.job_type}</td>
@@ -120,11 +138,15 @@ function renderTasks() {
                 ${task.last_error ? `<br><span class="text-xs text-red-500">${truncateText(task.last_error, 20)}</span>` : ''}
             </td>
         `;
-        
+
         row.addEventListener('click', () => showTaskDetails(task));
         tableBody.appendChild(row);
     });
 }
+
+
+
+
 function getStatusClass(status) {
     switch(status.toLowerCase()) {
         case 'pending':

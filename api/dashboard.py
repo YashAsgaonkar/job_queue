@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException
 from api.redis_client import redis_client
-from api.models import JobMap
+from api.models import JobMap, PaginatedTasksResponse
 import json
 router = APIRouter()
 
-@router.get("/tasks")
-async def get_tasks():
+
+@router.get("/tasks", response_model=PaginatedTasksResponse)
+async def get_tasks(page: int = 1, limit: int = 10):
     """
-    Retrieve all tasks from the Job_map hash in Redis
+    Retrieve paginated tasks from the Job_map hash in Redis
     """
     try:
         # Get all tasks from the Job_map hash
@@ -19,7 +20,24 @@ async def get_tasks():
             task_data = json.loads(task_raw)
             task = JobMap.model_validate(task_data)
             tasks.append(task.model_dump())
-            
-        return tasks
+        
+        # Implement pagination
+        total_tasks = len(tasks)
+        start = (page - 1) * limit
+        end = start + limit
+        paginated_tasks = tasks[start:end]
+        
+        # Return response with metadata
+        return PaginatedTasksResponse(
+            status="success",
+            total_tasks=total_tasks,
+            page=page,
+            limit=limit,
+            tasks_returned=len(paginated_tasks),
+            tasks=paginated_tasks
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve tasks: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to retrieve tasks: {str(e)}"
+        )

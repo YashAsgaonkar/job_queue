@@ -57,6 +57,10 @@ class Worker:
 
         logger.info(f"[Job {job_data.id}] Completed successfully.")
         return True
+    def handle_failure(self, job_data: JobMap, error: str):
+            logger.fatal(f"[Job {job_data.id}] Task failed with error: {error}")
+            self.update_job_status(job_data, JobStatus.FAILED, error=error)
+            self.requeue_job(job_data, self.retry_queue)
 
     def run(self):
         raise NotImplementedError("Subclasses must implement the run method.")
