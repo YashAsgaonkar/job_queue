@@ -1,11 +1,11 @@
 from fastapi import APIRouter
 from api.utils.redis_client import redis_client
-from api.models.models import MailRequest
+from api.models.models import MailRequest,ProcessQueryResponse
 from api.controllers.query_controller import process_query_controller, job_status_controller
 
 router = APIRouter()
 
-@router.post("/process_query")
+@router.post("/process_query", response_model=ProcessQueryResponse)
 async def process_query(query: MailRequest):
     """
     Process a query and push it in queue.
@@ -13,7 +13,7 @@ async def process_query(query: MailRequest):
     return await process_query_controller(query)
 
 
-@router.get("/job/status/{job_id}")
+@router.get("/job/status/{job_id}", response_model=ProcessQueryResponse)
 async def job_status(job_id: int):
     """
     Get the status of a job by its ID.

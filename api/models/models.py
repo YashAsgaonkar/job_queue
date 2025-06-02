@@ -18,7 +18,7 @@ class JobMap(BaseModel):
     id: int
     job_type: str
     payload: str
-    priority: str
+    priority: Priority
     created_at: float
     picked_at: Optional[float] = None
     completed_at: Optional[float] = None
@@ -26,11 +26,36 @@ class JobMap(BaseModel):
     retry_count: int = 0
     last_error: Optional[str] = None
 
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": 1,
+                "job_type": "send_email",
+                "payload": "{'to': 'user@example.com', 'subject': 'Test', 'message': 'Hello!'}",
+                "priority": "high",
+                "created_at": 1748783995.8422053,
+                "picked_at": None,
+                "completed_at": None,
+                "status": "pending",
+                "retry_count": 0,
+                "last_error": None
+            }
+        }
+
 
 class MailRequest(BaseModel):
     job_type: str
     priority: Priority
     payload: str
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "job_type": "send_email",
+                "priority": "high",
+                "payload": "{'to': 'hello@gmail.com', 'subject': 'Test Email', 'message': 'This is a test email.'}"
+            }
+        }
 
 class PaginatedTasksResponse(BaseModel):
     status: str
@@ -41,7 +66,7 @@ class PaginatedTasksResponse(BaseModel):
     tasks: List[JobMap]  # List of JobMap objects
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "status": "success",
                 "total_tasks": 100,
@@ -81,5 +106,26 @@ class PaginatedTasksResponse(BaseModel):
 class ProcessQueryResponse(TypedDict):
     message: str
     query_id: int
-    data: dict
+    data: JobMap
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "message": "Query processed successfully",
+                "query_id": 1,
+                "data": {
+                    "id": 1,
+                    "job_type": "send_email",
+                    "payload": "{'to': 'hello@123,com', 'subject': 'Test Email', 'message': 'This is a test email.'}",
+                    "priority": "high",
+                    "created_at": 1748783995.8422053,
+                    "picked_at": None,
+                    "completed_at": None,
+                    "status": "pending",
+                    "retry_count": 0,
+                    "last_error": None
+                }
+            }
+        }
+
 
