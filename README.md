@@ -43,7 +43,7 @@ The system consists of three main components:
 1. Clone the repository:
    ```bash
    git clone https://github.com/YashAsgaonkar/job_queue.git
-   cd mail_bg
+   cd job_queue
    ```
 
 2. Create and activate a virtual environment:
@@ -159,7 +159,7 @@ Response:
 
 Access the dashboard at http://127.0.0.1:8000/dashboard
 
-![Dashboard Screenshot](api/static/dashboard.jpg)
+![Dashboard Screenshot](static/dashboard.jpg)
 
 The dashboard provides:
 - Real-time view of all jobs in the system
