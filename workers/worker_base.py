@@ -3,9 +3,9 @@ import time
 import random
 import logging
 from typing import Optional
-from api.redis_client import redis_client
-from api.models import JobMap, JobStatus
-from api.utils import get_score
+from api.utils.redis_client import redis_client
+from api.models.models import JobMap, JobStatus
+from api.utils.utils import get_score
 
 logger = logging.getLogger("job_worker")
 handler = logging.StreamHandler()

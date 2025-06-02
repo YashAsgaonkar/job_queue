@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 import uvicorn
 from fastapi.staticfiles import StaticFiles
-from api.redis_client import redis_client
-from api.process_query import router as process_query_router
-from api.dashboard import router as dashboard_router
+from api.utils.redis_client import redis_client
+from api.routes.query_router import router as process_query_router
+from api.routes.dashboard_router import router as dashboard_router
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 

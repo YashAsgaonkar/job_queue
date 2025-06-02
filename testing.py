@@ -1,5 +1,5 @@
 import json
-from api.redis_client import redis_client
+from api.utils.redis_client import redis_client
 
 # Get the item with the lowest score (highest priority)
 result = redis_client.zrange("Mail_queue", 0, 0)

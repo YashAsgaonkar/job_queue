@@ -1,6 +1,6 @@
 from workers.worker_base import Worker
-from api.models import JobStatus
-from api.redis_client import redis_client
+from api.models.models import JobStatus
+from api.utils.redis_client import redis_client
 import time
 
 class MainQueueWorker(Worker):

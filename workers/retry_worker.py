@@ -1,8 +1,8 @@
 import time
 from workers.worker_base import Worker
-from api.redis_client import redis_client
-from api.models import JobStatus
-from api.utils import calculate_backoff
+from api.utils.redis_client import redis_client
+from api.models.models import JobStatus
+from api.utils.utils import calculate_backoff
 
 
 class RetryQueueWorker(Worker):
