@@ -25,7 +25,7 @@ class MainQueueWorker(Worker):
                 self.update_job_status(job_data, JobStatus.SUCCESS)
             else:
                 job_data.retry_count += 1
-                if job_data.retry_count >= 3:
+                if job_data.retry_count > 3:
                     self.update_job_status(job_data, JobStatus.PERMANENTLY_FAILED, "Job permanently failed after 3 retries")
                 else:
                     self.update_job_status(job_data, JobStatus.FAILED, "Job failed, moving to retry queue")
